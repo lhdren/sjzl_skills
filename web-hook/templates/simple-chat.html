@@ -297,6 +297,100 @@
             color: #667eea;
             font-style: italic;
         }
+
+        /* 代码块增强样式 */
+        .code-block {
+            background: #f5f5f5;
+            border-radius: 8px;
+            margin: 12px 0;
+            overflow: hidden;
+            border: 1px solid #e0e0e0;
+        }
+
+        .code-header {
+            background: #eeeeee;
+            padding: 8px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e0e0e0;
+            user-select: none;
+        }
+
+        .code-lang {
+            font-size: 12px;
+            color: #667eea;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .code-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .code-btn {
+            background: white;
+            border: 1px solid #ddd;
+            color: #666;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .code-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .code-btn.copied {
+            background: #4caf50;
+            color: white;
+            border-color: #4caf50;
+        }
+
+        .code-content {
+            position: relative;
+            max-height: 500px;
+            overflow: auto;
+            transition: max-height 0.3s ease;
+        }
+
+        .code-content.collapsed {
+            max-height: 0;
+        }
+
+        .code-content pre {
+            margin: 0;
+            padding: 16px;
+            background: transparent;
+            border-radius: 0;
+            border: none;
+        }
+
+        .code-content code {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #333;
+            white-space: pre;
+        }
+
+        /* 行内代码 */
+        .inline-code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+            color: #667eea;
+        }
     </style>
 </head>
 <body>
@@ -710,9 +804,97 @@
         }
 
         function formatContent(text) {
-            text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+            // 生成唯一ID
+            let codeBlockIndex = 0;
+
+            // 处理代码块
+            text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+                const blockId = `code-block-${Date.now()}-${codeBlockIndex++}`;
+                const language = lang || 'text';
+                const escapedCode = escapeHtml(code);
+                return `
+                    <div class="code-block" id="${blockId}">
+                        <div class="code-header">
+                            <span class="code-lang">${language}</span>
+                            <div class="code-actions">
+                                <button class="code-btn" onclick="toggleCode('${blockId}')">
+                                    <span>▼</span> 折叠
+                                </button>
+                                <button class="code-btn" onclick="copyCode('${blockId}', this)">
+                                    <span>📋</span> 复制
+                                </button>
+                            </div>
+                        </div>
+                        <div class="code-content">
+                            <pre><code>${escapedCode}</code></pre>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // 处理行内代码
+            text = text.replace(/`([^`]+)`/g, '<span class="inline-code">$1</span>');
+
+            // 处理换行（但不在代码块内）
             text = text.replace(/\n/g, '<br>');
+
             return text;
+        }
+
+        // 切换代码块折叠
+        function toggleCode(blockId) {
+            const block = document.getElementById(blockId);
+            if (!block) return;
+
+            const content = block.querySelector('.code-content');
+            const btn = block.querySelector('.code-actions .code-btn:first-child');
+
+            content.classList.toggle('collapsed');
+
+            if (content.classList.contains('collapsed')) {
+                btn.innerHTML = '<span>▶</span> 展开';
+            } else {
+                btn.innerHTML = '<span>▼</span> 折叠';
+            }
+        }
+
+        // 复制代码
+        async function copyCode(blockId, btn) {
+            const block = document.getElementById(blockId);
+            if (!block) return;
+
+            const code = block.querySelector('code');
+            const text = code.textContent;
+
+            try {
+                await navigator.clipboard.writeText(text);
+
+                // 显示复制成功状态
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<span>✓</span> 已复制';
+                btn.classList.add('copied');
+
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                // 降级方案
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+
+                btn.innerHTML = '<span>✓</span> 已复制';
+                btn.classList.add('copied');
+
+                setTimeout(() => {
+                    btn.innerHTML = '<span>📋</span> 复制';
+                    btn.classList.remove('copied');
+                }, 2000);
+            }
         }
 
         // 创建思考过程区块
