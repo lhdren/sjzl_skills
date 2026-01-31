@@ -326,18 +326,27 @@
 
         <div class="config-row">
             <label>模型 (Model)</label>
-            <input type="text" id="modelName" placeholder="claude-3-5-sonnet-20241022" />
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="modelName" placeholder="claude-3-5-sonnet-20241022" style="flex: 1;" />
+                <button class="preset-btn" onclick="fetchModels()" title="获取模型列表" id="fetchModelsBtn">📋</button>
+            </div>
+            <select id="modelSelect" style="display: none; margin-top: 5px;" onchange="document.getElementById('modelName').value = this.value;">
+                <option value="">-- 选择模型 --</option>
+            </select>
         </div>
 
         <div class="config-row">
             <label>API 格式</label>
-            <select id="apiFormat">
+            <select id="apiFormat" onchange="onApiFormatChange()">
                 <option value="anthropic">Anthropic (Messages API)</option>
                 <option value="openai">OpenAI (Chat Completions)</option>
             </select>
         </div>
 
-        <button class="preset-btn" style="width: 100%; padding: 10px;" onclick="saveConfig()">保存配置</button>
+        <div style="display: flex; gap: 10px;">
+            <button class="preset-btn" style="width: 100%; padding: 10px;" onclick="saveConfig()">保存配置</button>
+            <button class="preset-btn" style="width: 100%; padding: 10px;" onclick="fetchModels()">获取模型列表</button>
+        </div>
     </div>
 
     <div class="chat-container" id="chatContainer">
@@ -451,6 +460,122 @@
         function toggleConfig() {
             const panel = document.getElementById('configPanel');
             panel.classList.toggle('show');
+        }
+
+        // API 格式变化时更新模型列表端点提示
+        function onApiFormatChange() {
+            // 可以根据不同格式显示不同的提示
+        }
+
+        // 获取模型列表
+        async function fetchModels() {
+            const baseUrl = document.getElementById('baseUrl').value.trim();
+            const authToken = document.getElementById('authToken').value.trim();
+            const apiFormat = document.getElementById('apiFormat').value;
+            const fetchBtn = document.getElementById('fetchModelsBtn');
+            const modelSelect = document.getElementById('modelSelect');
+
+            if (!baseUrl || !authToken) {
+                alert('请先配置 API 地址和密钥');
+                return;
+            }
+
+            fetchBtn.disabled = true;
+            fetchBtn.textContent = '⏳';
+
+            try {
+                let url, headers, models = [];
+
+                if (apiFormat === 'openai') {
+                    url = baseUrl.replace(/\/$/, '') + '/models';
+                    headers = {
+                        'Authorization': `Bearer ${authToken}`
+                    };
+                } else {
+                    url = baseUrl.replace(/\/$/, '') + '/models';
+                    headers = {
+                        'x-api-key': authToken,
+                        'anthropic-version': '2023-06-01'
+                    };
+                }
+
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.data && Array.isArray(data.data)) {
+                    models = data.data.map(m => m.id);
+                } else if (data.models && Array.isArray(data.models)) {
+                    models = data.models.map(m => m.id || m.name);
+                } else if (Array.isArray(data)) {
+                    models = data.map(m => m.id || m.name);
+                }
+
+                if (models.length === 0) {
+                    models = getFallbackModels(apiFormat, baseUrl);
+                }
+
+                modelSelect.innerHTML = '<option value="">-- 选择模型 --</option>' +
+                    models.map(m => `<option value="${m}">${m}</option>`).join('');
+                modelSelect.style.display = 'block';
+
+                const firstModel = models[0];
+                if (firstModel) {
+                    document.getElementById('modelName').value = firstModel;
+                    addMessage('assistant', `成功获取 ${models.length} 个模型。已选择: ${firstModel}`);
+                }
+
+            } catch (error) {
+                console.error('获取模型列表失败:', error);
+
+                const fallbackModels = getFallbackModels(apiFormat, baseUrl);
+                modelSelect.innerHTML = '<option value="">-- 选择模型 --</option>' +
+                    fallbackModels.map(m => `<option value="${m}">${m}</option>`).join('');
+                modelSelect.style.display = 'block';
+
+                addMessage('assistant', `API 不支持自动获取模型列表。已加载 ${fallbackModels.length} 个预设模型。\n\n提示: ${error.message}`);
+            } finally {
+                fetchBtn.disabled = false;
+                fetchBtn.textContent = '📋';
+            }
+        }
+
+        // 获取预设模型列表（当 API 不支持 /models 时）
+        function getFallbackModels(apiFormat, baseUrl) {
+            const url = baseUrl.toLowerCase();
+
+            if (url.includes('bigmodel.cn') || url.includes('zhipuai')) {
+                return ['glm-4-plus', 'glm-4-flash', 'glm-4-air', 'glm-4-flashx', 'glm-4-0520', 'glm-3-turbo'];
+            }
+
+            if (url.includes('api.openai.com')) {
+                return ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo', 'o1-preview', 'o1-mini'];
+            }
+
+            if (url.includes('api.anthropic.com')) {
+                return ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229'];
+            }
+
+            if (url.includes('deepseek')) {
+                return ['deepseek-chat', 'deepseek-coder'];
+            }
+
+            if (url.includes('localhost') || url.includes('11434')) {
+                return ['llama3', 'llama3:8b', 'mistral', 'qwen2', 'codellama', 'phi3'];
+            }
+
+            if (apiFormat === 'anthropic') {
+                return ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022'];
+            } else {
+                return ['gpt-4o-mini', 'llama3'];
+            }
         }
 
         function addMessage(role, content, isStreaming = false) {
