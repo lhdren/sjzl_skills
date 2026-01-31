@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Claude Chat - Streaming</title>
+    <title>AI Chat - Streaming Multi-Model</title>
     <style>
         * {
             margin: 0;
@@ -24,11 +24,93 @@
             padding: 20px;
             text-align: center;
             border-bottom: 1px solid #0f3460;
+            position: relative;
         }
 
         .header h1 {
             color: #e94560;
             font-size: 24px;
+        }
+
+        .config-toggle {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(233, 69, 96, 0.2);
+            border: 1px solid #e94560;
+            color: #e94560;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .config-toggle:hover {
+            background: rgba(233, 69, 96, 0.3);
+        }
+
+        .config-panel {
+            display: none;
+            padding: 20px;
+            background: #0f3460;
+            border-bottom: 1px solid #16213e;
+        }
+
+        .config-panel.show {
+            display: block;
+        }
+
+        .config-row {
+            margin-bottom: 15px;
+        }
+
+        .config-row label {
+            display: block;
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .config-row input,
+        .config-row select {
+            width: 100%;
+            padding: 10px;
+            background: #1a1a2e;
+            border: 1px solid #2a2a4e;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #eee;
+        }
+
+        .config-row input:focus,
+        .config-row select:focus {
+            outline: none;
+            border-color: #e94560;
+        }
+
+        .provider-preset {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .preset-btn {
+            padding: 6px 12px;
+            background: #1a1a2e;
+            border: 1px solid #2a2a4e;
+            color: #eee;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .preset-btn:hover {
+            background: #e94560;
+            border-color: #e94560;
         }
 
         .chat-container {
@@ -161,33 +243,13 @@
             cursor: not-allowed;
         }
 
-        .config {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 15px 20px;
-        }
-
-        .config input {
-            width: 100%;
-            padding: 10px 14px;
-            background: #0f3460;
-            border: 1px solid #1a1a2e;
-            border-radius: 8px;
-            color: #eee;
-            outline: none;
-        }
-
-        .config label {
-            display: block;
-            color: #888;
-            font-size: 12px;
-            margin-bottom: 5px;
-        }
-
         .actions {
             display: flex;
             gap: 10px;
             margin-top: 10px;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .action-btn {
@@ -202,6 +264,24 @@
 
         .action-btn:hover {
             background: #1a1a2e;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-left: 8px;
+        }
+
+        .status-configured {
+            background: #4caf50;
+            color: white;
+        }
+
+        .status-unconfigured {
+            background: #ff9800;
+            color: white;
         }
 
         pre {
@@ -220,48 +300,152 @@
 </head>
 <body>
     <div class="header">
-        <h1>Claude Streaming Chat</h1>
+        <h1>AI Streaming Chat <span id="statusBadge" class="status-badge status-unconfigured">未配置</span></h1>
+        <button class="config-toggle" onclick="toggleConfig()">⚙️</button>
+    </div>
+
+    <div class="config-panel" id="configPanel">
+        <div class="provider-preset">
+            <button class="preset-btn" onclick="applyPreset('anthropic')">Anthropic</button>
+            <button class="preset-btn" onclick="applyPreset('openai')">OpenAI</button>
+            <button class="preset-btn" onclick="applyPreset('ollama')">Ollama</button>
+            <button class="preset-btn" onclick="applyPreset('deepseek')">DeepSeek</button>
+            <button class="preset-btn" onclick="applyPreset('custom')">自定义</button>
+        </div>
+
+        <div class="config-row">
+            <label>API 地址 (Base URL)</label>
+            <input type="text" id="baseUrl" placeholder="https://api.anthropic.com" />
+        </div>
+
+        <div class="config-row">
+            <label>API 密钥 (Auth Token)</label>
+            <input type="password" id="authToken" placeholder="sk-ant-api03-..." />
+        </div>
+
+        <div class="config-row">
+            <label>模型 (Model)</label>
+            <input type="text" id="modelName" placeholder="claude-3-5-sonnet-20241022" />
+        </div>
+
+        <div class="config-row">
+            <label>API 格式</label>
+            <select id="apiFormat">
+                <option value="anthropic">Anthropic (Messages API)</option>
+                <option value="openai">OpenAI (Chat Completions)</option>
+            </select>
+        </div>
+
+        <button class="preset-btn" style="width: 100%; padding: 10px;" onclick="saveConfig()">保存配置</button>
     </div>
 
     <div class="chat-container" id="chatContainer">
         <div class="message assistant">
-            <div class="avatar">C</div>
+            <div class="avatar">AI</div>
             <div class="message-content">
-                你好！我是 Claude，支持流式输出。有什么可以帮你的吗？
+                你好！我是 AI 助手，支持流式输出。请先点击右上角 ⚙️ 配置 API，然后开始对话。
             </div>
         </div>
     </div>
 
     <div class="input-container">
-        <div class="config">
-            <label>API Key</label>
-            <input type="password" id="apiKey" placeholder="sk-ant-api03-..." />
-        </div>
         <div class="input-wrapper">
             <textarea id="userInput" placeholder="输入问题... (Shift+Enter 换行)" rows="2"></textarea>
             <button id="sendBtn" onclick="sendMessage()">发送</button>
         </div>
-        <div class="actions" style="max-width: 900px; margin: 10px auto 0;">
+        <div class="actions">
             <button class="action-btn" onclick="clearChat()">清空对话</button>
             <button class="action-btn" onclick="exportChat()">导出记录</button>
         </div>
     </div>
 
     <script>
+        let config = {
+            baseUrl: '',
+            authToken: '',
+            model: 'claude-3-5-sonnet-20241022',
+            apiFormat: 'anthropic'
+        };
+
         const chatContainer = document.getElementById('chatContainer');
         const userInput = document.getElementById('userInput');
         const sendBtn = document.getElementById('sendBtn');
-        const apiKeyInput = document.getElementById('apiKey');
-
+        const statusBadge = document.getElementById('statusBadge');
         let conversationHistory = [];
 
-        // 加载 API Key
-        const savedApiKey = localStorage.getItem('claude-api-key-streaming');
-        if (savedApiKey) apiKeyInput.value = savedApiKey;
+        function loadConfig() {
+            const saved = localStorage.getItem('ai-chat-streaming-config');
+            if (saved) {
+                config = JSON.parse(saved);
+                document.getElementById('baseUrl').value = config.baseUrl || '';
+                document.getElementById('authToken').value = config.authToken || '';
+                document.getElementById('modelName').value = config.model || '';
+                document.getElementById('apiFormat').value = config.apiFormat || 'anthropic';
+                updateStatus();
+            }
+        }
 
-        apiKeyInput.addEventListener('change', () => {
-            localStorage.setItem('claude-api-key-streaming', apiKeyInput.value);
-        });
+        function saveConfig() {
+            config.baseUrl = document.getElementById('baseUrl').value.trim();
+            config.authToken = document.getElementById('authToken').value.trim();
+            config.model = document.getElementById('modelName').value.trim();
+            config.apiFormat = document.getElementById('apiFormat').value;
+
+            localStorage.setItem('ai-chat-streaming-config', JSON.stringify(config));
+            updateStatus();
+            toggleConfig();
+            addMessage('assistant', '配置已保存！现在可以开始对话了。');
+        }
+
+        function updateStatus() {
+            if (config.baseUrl && config.authToken) {
+                statusBadge.textContent = '已配置';
+                statusBadge.className = 'status-badge status-configured';
+            } else {
+                statusBadge.textContent = '未配置';
+                statusBadge.className = 'status-badge status-unconfigured';
+            }
+        }
+
+        function applyPreset(preset) {
+            const presets = {
+                anthropic: {
+                    baseUrl: 'https://api.anthropic.com',
+                    model: 'claude-3-5-sonnet-20241022',
+                    apiFormat: 'anthropic'
+                },
+                openai: {
+                    baseUrl: 'https://api.openai.com/v1',
+                    model: 'gpt-4o-mini',
+                    apiFormat: 'openai'
+                },
+                ollama: {
+                    baseUrl: 'http://localhost:11434/v1',
+                    model: 'llama3',
+                    apiFormat: 'openai'
+                },
+                deepseek: {
+                    baseUrl: 'https://api.deepseek.com/v1',
+                    model: 'deepseek-chat',
+                    apiFormat: 'openai'
+                },
+                custom: {
+                    baseUrl: '',
+                    model: '',
+                    apiFormat: 'anthropic'
+                }
+            };
+
+            const p = presets[preset];
+            document.getElementById('baseUrl').value = p.baseUrl;
+            document.getElementById('modelName').value = p.model;
+            document.getElementById('apiFormat').value = p.apiFormat;
+        }
+
+        function toggleConfig() {
+            const panel = document.getElementById('configPanel');
+            panel.classList.toggle('show');
+        }
 
         function addMessage(role, content, isStreaming = false) {
             const messageDiv = document.createElement('div');
@@ -269,7 +453,7 @@
 
             const avatar = document.createElement('div');
             avatar.className = 'avatar';
-            avatar.textContent = role === 'user' ? 'U' : 'C';
+            avatar.textContent = role === 'user' ? 'U' : 'AI';
 
             const contentDiv = document.createElement('div');
             contentDiv.className = 'message-content';
@@ -293,49 +477,64 @@
         }
 
         function formatContent(text) {
-            // 简单的代码块格式化
             text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
-            // 换行处理
             text = text.replace(/\n/g, '<br>');
             return text;
         }
 
         async function sendMessage() {
             const prompt = userInput.value.trim();
-            const apiKey = apiKeyInput.value.trim();
 
             if (!prompt) return;
-            if (!apiKey) {
-                alert('请配置 API Key');
+
+            if (!config.baseUrl || !config.authToken) {
+                alert('请先配置 API 地址和密钥');
+                toggleConfig();
                 return;
             }
 
-            // 添加用户消息
             addMessage('user', prompt);
             userInput.value = '';
-
-            // 禁用输入
             userInput.disabled = true;
             sendBtn.disabled = true;
 
-            // 创建流式响应容器
             const streamingContent = addMessage('assistant', '', true);
 
             try {
-                const response = await fetch('https://api.anthropic.com/v1/messages', {
-                    method: 'POST',
-                    headers: {
-                        'x-api-key': apiKey,
+                let url, headers, body;
+
+                if (config.apiFormat === 'anthropic') {
+                    url = `${config.baseUrl}/v1/messages`;
+                    headers = {
+                        'x-api-key': config.authToken,
                         'anthropic-version': '2023-06-01',
                         'content-type': 'application/json',
                         'dangerously-allow-browser': 'true'
-                    },
-                    body: JSON.stringify({
-                        model: 'claude-3-5-sonnet-20241022',
+                    };
+                    body = {
+                        model: config.model,
                         max_tokens: 4096,
                         stream: true,
                         messages: [...conversationHistory, { role: 'user', content: prompt }]
-                    })
+                    };
+                } else {
+                    url = `${config.baseUrl}/chat/completions`;
+                    headers = {
+                        'Authorization': `Bearer ${config.authToken}`,
+                        'Content-Type': 'application/json'
+                    };
+                    body = {
+                        model: config.model,
+                        messages: [...conversationHistory, { role: 'user', content: prompt }],
+                        max_tokens: 4096,
+                        stream: true
+                    };
+                }
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(body)
                 });
 
                 if (!response.ok) throw new Error('API 请求失败');
@@ -360,8 +559,19 @@
 
                             try {
                                 const parsed = JSON.parse(data);
-                                if (parsed.type === 'content_block_delta') {
-                                    const text = parsed.delta?.text || '';
+                                let text = '';
+
+                                if (config.apiFormat === 'anthropic') {
+                                    if (parsed.type === 'content_block_delta') {
+                                        text = parsed.delta?.text || '';
+                                    }
+                                } else {
+                                    if (parsed.choices && parsed.choices[0]?.delta?.content) {
+                                        text = parsed.choices[0].delta.content;
+                                    }
+                                }
+
+                                if (text) {
                                     fullContent += text;
                                     streamingContent.innerHTML = formatContent(fullContent);
                                     chatContainer.scrollTop = chatContainer.scrollHeight;
@@ -389,7 +599,7 @@
 
         function clearChat() {
             if (confirm('确定要清空对话吗？')) {
-                chatContainer.innerHTML = '<div class="message assistant"><div class="avatar">C</div><div class="message-content">对话已清空，可以开始新的对话了。</div></div>';
+                chatContainer.innerHTML = '<div class="message assistant"><div class="avatar">AI</div><div class="message-content">对话已清空，可以开始新的对话了。</div></div>';
                 conversationHistory = [];
             }
         }
@@ -400,12 +610,11 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `claude-chat-${Date.now()}.txt`;
+            a.download = `ai-chat-${Date.now()}.txt`;
             a.click();
             URL.revokeObjectURL(url);
         }
 
-        // 快捷键
         userInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -413,11 +622,12 @@
             }
         });
 
-        // 自动调整高度
         userInput.addEventListener('input', () => {
             userInput.style.height = 'auto';
             userInput.style.height = Math.min(userInput.scrollHeight, 150) + 'px';
         });
+
+        loadConfig();
     </script>
 </body>
 </html>

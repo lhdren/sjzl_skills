@@ -1,13 +1,14 @@
 ---
 name: web-hook
 description: >
-  快速创建 Web 前端页面，收集用户指令，集成 Claude API 进行智能对话。
-  Use when creating web interfaces that collect user input and process with Claude AI.
-  Triggers on requests for "web page", "frontend", "chat interface", "Claude integration",
-  "webhook", "对话界面", "前端页面", "网页开发", or "API 集成".
+  快速创建 Web 前端页面，收集用户指令，集成多种 AI 模型 API 进行智能对话。
+  支持 Claude (Anthropic)、OpenAI、Ollama、DeepSeek 等多种模型提供商。
+  Use when creating web interfaces that collect user input and process with AI models.
+  Triggers on requests for "web page", "frontend", "chat interface", "AI integration",
+  "webhook", "对话界面", "前端页面", "网页开发", "API 集成", "多模型支持".
 metadata:
   author: lhdren
-  version: "1.0.0"
+  version: "2.0.0"
 allowed-tools:
   - Read
   - Write
@@ -16,9 +17,16 @@ allowed-tools:
   - WebFetch
 ---
 
-# Web Hook - Claude 集成前端页面生成工具
+# Web Hook - AI 多模型集成前端页面生成工具
 
-快速创建集成了 Claude API 的 Web 前端页面，用于收集用户指令并与 Claude 进行智能对话。
+快速创建集成了多种 AI 模型的 Web 前端页面，用于收集用户指令并与 AI 进行智能对话。
+
+**支持的模型提供商**：
+- **Anthropic Claude** - claude-3-5-sonnet, claude-3-5-haiku
+- **OpenAI** - GPT-4o, GPT-4o-mini, o1
+- **Ollama** - 本地开源模型 (Llama, Mistral, etc.)
+- **DeepSeek** - deepseek-chat, deepseek-coder
+- **自定义** - 任何兼容 Anthropic 或 OpenAI API 格式的服务
 
 ## 快速开始
 
@@ -45,24 +53,55 @@ allowed-tools:
 
 提供多种预置模板：
 
-| 模板 | 适用场景 | 文件 |
-|------|----------|------|
-| **简单聊天** | 基础对话界面 | `templates/simple-chat.html` |
-| **参数化指令** | 需要配置参数的任务 | `templates/command-form.html` |
-| **流式输出** | 实时显示 Claude 回复 | `templates/streaming-chat.html` |
-| **多轮对话** | 支持上下文的对话 | `templates/multi-turn-chat.html` |
+| 模板 | 适用场景 | 特点 | 文件 |
+|------|----------|------|------|
+| **简单聊天** | 基础对话界面 | 轻量级，快速测试 | `templates/simple-chat.html` |
+| **流式输出** | 实时显示 AI 回复 | 打字机效果，多轮对话 | `templates/streaming-chat.html` |
 
-### 2. 配置 Claude API
+**新功能**：
+- ✅ **多模型支持**：内置 Anthropic、OpenAI、Ollama、DeepSeek 预设
+- ✅ **自定义 API**：支持任何兼容 Anthropic 或 OpenAI API 格式的服务
+- ✅ **一键配置**：点击预设按钮自动填充配置
+- ✅ **本地存储**：配置保存在浏览器 localStorage 中
 
-在生成的页面中配置 API：
+### 2. 配置 AI 模型
 
-```javascript
-const claudeConfig = {
-  apiKey: 'your-api-key',           // Claude API Key
-  model: 'claude-3-5-sonnet-20241022', // 模型版本
-  maxTokens: 4096,                   // 最大 token 数
-  temperature: 0.7                   // 温度参数
-};
+点击页面右上角 ⚙️ 按钮打开配置面板，支持两种配置方式：
+
+**方式 1：使用预设**（推荐）
+
+点击预设按钮自动填充配置：
+- **Anthropic** - 使用官方 Claude API
+- **OpenAI** - 使用 GPT-4o、GPT-4o-mini 等
+- **Ollama** - 使用本地开源模型
+- **DeepSeek** - 使用 DeepSeek API
+- **自定义** - 手动输入配置
+
+**方式 2：手动配置**
+
+| 配置项 | 说明 | 示例 |
+|--------|------|------|
+| API 地址 | 模型服务的 Base URL | `https://api.anthropic.com` |
+| API 密钥 | 认证 Token | `sk-ant-api03-...` |
+| 模型 | 要使用的模型名称 | `claude-3-5-sonnet-20241022` |
+| API 格式 | API 类型 | Anthropic / OpenAI |
+
+### 3. 支持的 API 格式
+
+**Anthropic 格式**（适用于 Claude）
+
+```
+API 地址: https://api.anthropic.com
+端点: /v1/messages
+Headers: x-api-key, anthropic-version
+```
+
+**OpenAI 格式**（适用于 GPT、Ollama、DeepSeek 等）
+
+```
+API 地址: https://api.openai.com/v1
+端点: /chat/completions
+Headers: Authorization: Bearer
 ```
 
 ### 3. 自定义页面（可选）
