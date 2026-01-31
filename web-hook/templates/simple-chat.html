@@ -336,19 +336,114 @@
             }
         }
 
-        // 保存配置
-        function saveConfig() {
-            config.baseUrl = document.getElementById('baseUrl').value.trim();
-            config.authToken = document.getElementById('authToken').value.trim();
-            config.model = document.getElementById('modelName').value.trim();
-            config.apiFormat = document.getElementById('apiFormat').value;
+        // 验证配置
+        async function validateConfig(baseUrl, authToken, model, apiFormat) {
+            if (!baseUrl || !authToken || !model) {
+                return { valid: false, message: '请填写完整的配置信息（API 地址、密钥、模型）' };
+            }
 
-            localStorage.setItem('ai-chat-config', JSON.stringify(config));
-            updateStatus();
-            toggleConfig();
+            let url, headers, body;
 
-            if (config.baseUrl && config.authToken) {
-                addMessage('assistant', '配置已保存！现在可以开始对话了。');
+            if (apiFormat === 'anthropic') {
+                url = `${baseUrl.replace(/\/$/, '')}/v1/messages`;
+                headers = {
+                    'x-api-key': authToken,
+                    'anthropic-version': '2023-06-01',
+                    'content-type': 'application/json',
+                    'dangerously-allow-browser': 'true'
+                };
+                body = {
+                    model: model,
+                    max_tokens: 100,
+                    messages: [{ role: 'user', content: 'Hi' }]
+                };
+            } else {
+                // OpenAI 格式
+                url = `${baseUrl.replace(/\/$/, '')}/chat/completions`;
+                headers = {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                };
+                body = {
+                    model: model,
+                    messages: [{ role: 'user', content: 'Hi' }],
+                    max_tokens: 100
+                };
+            }
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(body)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    const errorMsg = errorData.error?.message || errorData.message || `HTTP ${response.status}`;
+
+                    // 根据错误类型提供更友好的提示
+                    if (response.status === 401 || response.status === 403) {
+                        return { valid: false, message: `API 密钥无效或已过期 (${errorMsg})` };
+                    } else if (response.status === 404) {
+                        return { valid: false, message: `模型 "${model}" 不存在或端点错误 (${errorMsg})` };
+                    } else if (response.status === 429) {
+                        return { valid: false, message: `请求过于频繁，请稍后再试 (${errorMsg})` };
+                    } else if (errorMsg.includes('余额') || errorMsg.includes('资源包')) {
+                        return { valid: false, message: `账户余额不足或资源包已用完 (${errorMsg})` };
+                    } else {
+                        return { valid: false, message: `配置验证失败: ${errorMsg}` };
+                    }
+                }
+
+                return { valid: true, message: '配置验证成功！' };
+            } catch (error) {
+                return { valid: false, message: `网络错误: ${error.message}` };
+            }
+        }
+
+        // 保存配置（带验证）
+        async function saveConfig() {
+            const baseUrl = document.getElementById('baseUrl').value.trim();
+            const authToken = document.getElementById('authToken').value.trim();
+            const model = document.getElementById('modelName').value.trim();
+            const apiFormat = document.getElementById('apiFormat').value;
+
+            if (!baseUrl || !authToken || !model) {
+                alert('请填写完整的配置信息');
+                return;
+            }
+
+            // 禁用保存按钮，显示验证中状态
+            const saveBtn = event.target;
+            const originalText = saveBtn.textContent;
+            saveBtn.disabled = true;
+            saveBtn.textContent = '验证中...';
+
+            addMessage('assistant', '正在验证配置，请稍候...');
+
+            // 验证配置
+            const result = await validateConfig(baseUrl, authToken, model, apiFormat);
+
+            // 恢复按钮状态
+            saveBtn.disabled = false;
+            saveBtn.textContent = originalText;
+
+            if (result.valid) {
+                // 验证成功，保存配置
+                config.baseUrl = baseUrl;
+                config.authToken = authToken;
+                config.model = model;
+                config.apiFormat = apiFormat;
+
+                localStorage.setItem('ai-chat-config', JSON.stringify(config));
+                updateStatus();
+                toggleConfig();
+
+                addMessage('assistant', '✅ 配置验证成功并已保存！现在可以开始对话了。');
+            } else {
+                // 验证失败，显示错误信息
+                addMessage('assistant', `❌ ${result.message}\n\n请检查配置后重试。`);
             }
         }
 
