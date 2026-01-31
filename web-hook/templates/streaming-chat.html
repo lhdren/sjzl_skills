@@ -308,6 +308,7 @@
         <div class="provider-preset">
             <button class="preset-btn" onclick="applyPreset('anthropic')">Anthropic</button>
             <button class="preset-btn" onclick="applyPreset('openai')">OpenAI</button>
+            <button class="preset-btn" onclick="applyPreset('zhipuai')">智谱AI</button>
             <button class="preset-btn" onclick="applyPreset('ollama')">Ollama</button>
             <button class="preset-btn" onclick="applyPreset('deepseek')">DeepSeek</button>
             <button class="preset-btn" onclick="applyPreset('custom')">自定义</button>
@@ -418,6 +419,11 @@
                     baseUrl: 'https://api.openai.com/v1',
                     model: 'gpt-4o-mini',
                     apiFormat: 'openai'
+                },
+                zhipuai: {
+                    baseUrl: 'https://open.bigmodel.cn/api/anthropic',
+                    model: 'glm-4-plus',
+                    apiFormat: 'anthropic'
                 },
                 ollama: {
                     baseUrl: 'http://localhost:11434/v1',

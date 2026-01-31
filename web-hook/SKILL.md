@@ -24,6 +24,7 @@ allowed-tools:
 **支持的模型提供商**：
 - **Anthropic Claude** - claude-3-5-sonnet, claude-3-5-haiku
 - **OpenAI** - GPT-4o, GPT-4o-mini, o1
+- **智谱 AI (BigModel)** - GLM-4-Plus, GLM-4-Flash
 - **Ollama** - 本地开源模型 (Llama, Mistral, etc.)
 - **DeepSeek** - deepseek-chat, deepseek-coder
 - **自定义** - 任何兼容 Anthropic 或 OpenAI API 格式的服务
