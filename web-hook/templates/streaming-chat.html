@@ -292,6 +292,66 @@
             margin: 10px 0;
         }
 
+        /* 思考过程样式 */
+        .thinking-block {
+            margin-bottom: 12px;
+            border: 1px solid #3a3a5e;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .thinking-header {
+            background: #2a2a4e;
+            padding: 10px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .thinking-header:hover {
+            background: #3a3a5e;
+        }
+
+        .thinking-header .toggle-icon {
+            font-size: 12px;
+            transition: transform 0.3s;
+        }
+
+        .thinking-header.collapsed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+
+        .thinking-header .label {
+            font-size: 13px;
+            color: #aaa;
+            font-weight: 500;
+        }
+
+        .thinking-content {
+            background: #1a1a2e;
+            padding: 16px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #999;
+            border-top: 1px solid #3a3a5e;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .thinking-content.collapsed {
+            display: none;
+        }
+
+        .thinking-status {
+            font-size: 12px;
+            color: #e94560;
+            font-style: italic;
+        }
+        }
+
         code {
             font-family: 'Consolas', 'Monaco', monospace;
             font-size: 14px;
@@ -711,6 +771,44 @@
             return text;
         }
 
+        // 创建思考过程区块
+        function createThinkingBlock() {
+            const block = document.createElement('div');
+            block.className = 'thinking-block';
+
+            const header = document.createElement('div');
+            header.className = 'thinking-header collapsed';
+            header.innerHTML = `
+                <span class="toggle-icon">▼</span>
+                <span class="label">💭 思考过程</span>
+                <span class="thinking-status">思考中...</span>
+            `;
+            header.onclick = () => toggleThinking(header);
+
+            const content = document.createElement('div');
+            content.className = 'thinking-content collapsed';
+
+            block.appendChild(header);
+            block.appendChild(content);
+
+            return block;
+        }
+
+        // 切换思考过程折叠状态
+        function toggleThinking(header) {
+            const content = header.nextElementSibling;
+            const status = header.querySelector('.thinking-status');
+
+            header.classList.toggle('collapsed');
+            content.classList.toggle('collapsed');
+
+            if (header.classList.contains('collapsed')) {
+                status.textContent = '已折叠';
+            } else {
+                status.textContent = '展开查看';
+            }
+        }
+
         async function sendMessage() {
             const prompt = userInput.value.trim();
 
@@ -746,6 +844,12 @@
                         stream: true,
                         messages: [...conversationHistory, { role: 'user', content: prompt }]
                     };
+                    // 启用扩展思考（如果模型支持）
+                    if (config.model.includes('claude')) {
+                        body.extended_thinking = {
+                            max_tokens: 8000
+                        };
+                    }
                 } else {
                     url = `${config.baseUrl}/chat/completions`;
                     headers = {
@@ -771,6 +875,9 @@
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let fullContent = '';
+                let thinkingContent = '';
+                let thinkingBlock = null;
+                let contentBlock = null;
 
                 streamingContent.innerHTML = '';
 
@@ -789,20 +896,56 @@
                             try {
                                 const parsed = JSON.parse(data);
                                 let text = '';
+                                let isThinking = false;
 
                                 if (config.apiFormat === 'anthropic') {
-                                    if (parsed.type === 'content_block_delta') {
-                                        text = parsed.delta?.text || '';
+                                    if (parsed.type === 'content_block_start') {
+                                        // 检查内容块类型
+                                        if (parsed.content_block?.type === 'thinking') {
+                                            isThinking = true;
+                                            // 创建思考过程区块
+                                            if (!thinkingBlock) {
+                                                thinkingBlock = createThinkingBlock();
+                                                streamingContent.appendChild(thinkingBlock);
+                                                // 自动展开思考过程
+                                                const header = thinkingBlock.querySelector('.thinking-header');
+                                                header.classList.remove('collapsed');
+                                                const content = thinkingBlock.querySelector('.thinking-content');
+                                                content.classList.remove('collapsed');
+                                            }
+                                        }
+                                    } else if (parsed.type === 'content_block_delta') {
+                                        // 思考内容的 delta
+                                        if (parsed.delta?.thinking !== undefined) {
+                                            text = parsed.delta.thinking || '';
+                                            isThinking = true;
+                                        } else if (parsed.delta?.text !== undefined) {
+                                            text = parsed.delta.text || '';
+                                        }
                                     }
                                 } else {
+                                    // OpenAI 格式
                                     if (parsed.choices && parsed.choices[0]?.delta?.content) {
                                         text = parsed.choices[0].delta.content;
                                     }
                                 }
 
                                 if (text) {
-                                    fullContent += text;
-                                    streamingContent.innerHTML = formatContent(fullContent);
+                                    if (isThinking && thinkingBlock) {
+                                        // 更新思考内容
+                                        thinkingContent += text;
+                                        const thinkingContentDiv = thinkingBlock.querySelector('.thinking-content');
+                                        thinkingContentDiv.innerHTML = formatContent(thinkingContent);
+                                    } else {
+                                        // 更新正文内容
+                                        if (!contentBlock) {
+                                            contentBlock = document.createElement('div');
+                                            contentBlock.className = 'response-content';
+                                            streamingContent.appendChild(contentBlock);
+                                        }
+                                        fullContent += text;
+                                        contentBlock.innerHTML = formatContent(fullContent);
+                                    }
                                     chatContainer.scrollTop = chatContainer.scrollHeight;
                                 }
                             } catch (e) {
@@ -810,6 +953,16 @@
                             }
                         }
                     }
+                }
+
+                // 思考过程完成后自动折叠
+                if (thinkingBlock) {
+                    setTimeout(() => {
+                        const header = thinkingBlock.querySelector('.thinking-header');
+                        if (header && !header.classList.contains('collapsed')) {
+                            toggleThinking(header);
+                        }
+                    }, 500);
                 }
 
                 conversationHistory.push(

@@ -238,6 +238,65 @@
             background: #ff9800;
             color: white;
         }
+
+        /* 思考过程样式 */
+        .thinking-block {
+            margin-bottom: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .thinking-header {
+            background: #f5f5f5;
+            padding: 10px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .thinking-header:hover {
+            background: #eeeeee;
+        }
+
+        .thinking-header .toggle-icon {
+            font-size: 12px;
+            transition: transform 0.3s;
+        }
+
+        .thinking-header.collapsed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+
+        .thinking-header .label {
+            font-size: 13px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .thinking-content {
+            background: #fafafa;
+            padding: 16px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #666;
+            border-top: 1px solid #e0e0e0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .thinking-content.collapsed {
+            display: none;
+        }
+
+        .thinking-status {
+            font-size: 12px;
+            color: #667eea;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -650,6 +709,75 @@
             return div.innerHTML;
         }
 
+        function formatContent(text) {
+            text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+            text = text.replace(/\n/g, '<br>');
+            return text;
+        }
+
+        // 创建思考过程区块
+        function createThinkingBlock(content) {
+            const block = document.createElement('div');
+            block.className = 'thinking-block';
+
+            const header = document.createElement('div');
+            header.className = 'thinking-header collapsed';
+            header.innerHTML = `
+                <span class="toggle-icon">▼</span>
+                <span class="label">💭 思考过程</span>
+                <span class="thinking-status">已折叠</span>
+            `;
+            header.onclick = () => toggleThinking(header);
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'thinking-content collapsed';
+            contentDiv.innerHTML = formatContent(content);
+
+            block.appendChild(header);
+            block.appendChild(contentDiv);
+
+            return block;
+        }
+
+        // 切换思考过程折叠状态
+        function toggleThinking(header) {
+            const content = header.nextElementSibling;
+            const status = header.querySelector('.thinking-status');
+
+            header.classList.toggle('collapsed');
+            content.classList.toggle('collapsed');
+
+            if (header.classList.contains('collapsed')) {
+                status.textContent = '已折叠';
+            } else {
+                status.textContent = '展开查看';
+            }
+        }
+
+        // 添加带思考过程的消息
+        function addMessageWithThinking(role, content, thinking) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+
+            // 如果有思考内容，先添加思考区块
+            if (thinking) {
+                const thinkingBlock = createThinkingBlock(thinking);
+                bubble.appendChild(thinkingBlock);
+            }
+
+            // 添加正文内容
+            const contentDiv = document.createElement('div');
+            contentDiv.innerHTML = formatContent(content);
+            bubble.appendChild(contentDiv);
+
+            messageDiv.appendChild(bubble);
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
         async function sendMessage() {
             const prompt = userInput.value.trim();
 
@@ -684,6 +812,12 @@
                         max_tokens: 4096,
                         messages: [{ role: 'user', content: prompt }]
                     };
+                    // 启用扩展思考（如果模型支持）
+                    if (config.model.includes('claude')) {
+                        body.extended_thinking = {
+                            max_tokens: 8000
+                        };
+                    }
                 } else {
                     // OpenAI 格式
                     url = `${config.baseUrl}/chat/completions`;
@@ -710,15 +844,30 @@
                 }
 
                 const data = await response.json();
-                let assistantMessage;
+                let assistantMessage = '';
+                let thinkingMessage = '';
 
                 if (config.apiFormat === 'anthropic') {
-                    assistantMessage = data.content[0].text;
+                    // 检查是否有思考内容
+                    if (data.content && Array.isArray(data.content)) {
+                        for (const block of data.content) {
+                            if (block.type === 'thinking') {
+                                thinkingMessage = block.thinking || '';
+                            } else if (block.type === 'text') {
+                                assistantMessage = block.text || '';
+                            }
+                        }
+                        // 如果没有思考内容，使用旧的格式
+                        if (!assistantMessage && !thinkingMessage) {
+                            assistantMessage = data.content[0]?.text || '';
+                        }
+                    }
                 } else {
                     assistantMessage = data.choices[0].message.content;
                 }
 
-                addMessage('assistant', assistantMessage);
+                // 显示消息（包含思考过程）
+                addMessageWithThinking('assistant', assistantMessage, thinkingMessage);
 
             } catch (error) {
                 addMessage('assistant', `错误: ${error.message}`);
