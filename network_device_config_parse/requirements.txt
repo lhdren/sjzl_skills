@@ -1,0 +1,4 @@
+# Network Device Config Parser Dependencies
+
+# YAML 解析
+PyYAML>=6.0
