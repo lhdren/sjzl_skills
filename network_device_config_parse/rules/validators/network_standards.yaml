@@ -1,0 +1,156 @@
+# 网络数据校验规则
+# 用于校验提取的网络配置数据是否符合标准
+
+validation_rules:
+  # Hostname 校验
+  hostname:
+    required: true
+    pattern: '^[a-zA-Z][a-zA-Z0-9\-]{0,62}$'
+    max_length: 63
+    min_length: 1
+    forbidden_values:
+      - 'localhost'
+      - 'switch'
+      - 'router'
+    description: "设备主机名，1-63字符，只能包含字母、数字和连字符"
+
+  # IP 地址校验
+  ip_address:
+    required: true
+    pattern: '^(\\d{1,3}\\.){3}\\d{1,3}$'
+    validate_ranges: true
+    min_octet: 0
+    max_octet: 255
+    private_ranges:
+      - '10.0.0.0/8'
+      - '172.16.0.0/12'
+      - '192.168.0.0/16'
+    description: "IPv4 地址，格式 xxx.xxx.xxx.xxx"
+
+  # 子网掩码校验
+  subnet_mask:
+    required: true
+    valid_values:
+      - '255.0.0.0'
+      - '255.128.0.0'
+      - '255.192.0.0'
+      - '255.224.0.0'
+      - '255.240.0.0'
+      - '255.248.0.0'
+      - '255.252.0.0'
+      - '255.254.0.0'
+      - '255.255.0.0'
+      - '255.255.128.0'
+      - '255.255.192.0'
+      - '255.255.224.0'
+      - '255.255.240.0'
+      - '255.255.248.0'
+      - '255.255.252.0'
+      - '255.255.254.0'
+      - '255.255.255.0'
+      - '255.255.255.128'
+      - '255.255.255.192'
+      - '255.255.255.224'
+      - '255.255.255.240'
+      - '255.255.255.248'
+      - '255.255.255.252'
+      - '255.255.255.254'
+      - '255.255.255.255'
+    description: "有效子网掩码"
+
+  # MAC 地址校验
+  mac_address:
+    required: false
+    patterns:
+      - pattern: '^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$'
+        format: 'colon_separated'
+      - pattern: '^([0-9A-Fa-f]{2}\\.){5}[0-9A-Fa-f]{2}$'
+        format: 'dot_separated'
+      - pattern: '^([0-9A-Fa-f]{4}\\.){2}[0-9A-Fa-f]{4}$'
+        format: 'cisco_dot'
+      - pattern: '^[0-9A-Fa-f]{12}$'
+        format: 'no_separator'
+    description: "MAC 地址，支持多种格式"
+
+  # VLAN ID 校验
+  vlan_id:
+    required: false
+    range:
+      min: 1
+      max: 4094
+    reserved:
+      - 0  # 保留
+      - 4095  # 保留
+    description: "VLAN ID，范围 1-4094"
+
+  # 接口名称校验
+  interface_name:
+    required: true
+    patterns:
+      - pattern: '^(GigabitEthernet|FastEthernet|TenGigabitEthernet|FortyGigabitEthernet)\\d+(/\\d+)*$'
+        vendor: 'Cisco'
+      - pattern: '^(GigabitEthernet|FastEthernet)\\d+/\\d+/\\d+$'
+        vendor: 'Huawei'
+      - pattern: '^(GigabitEthernet|FastEthernet)\\d+/\\d+'
+        vendor: 'H3C'
+      - pattern: '^(ge-|xe-|et-)\\d+(/\\d+)*$'
+        vendor: 'Juniper'
+    description: "接口名称"
+
+  # 序列号校验
+  serial_number:
+    required: false
+    min_length: 8
+    max_length: 32
+    pattern: '^[A-Z0-9\-]+$'
+    description: "设备序列号"
+
+  # 端口号校验
+  port_number:
+    required: false
+    range:
+      min: 1
+      max: 65535
+    description: "TCP/UDP 端口号"
+
+quality_metrics:
+  # 质量评分标准
+  completeness:
+    excellent: 1.0      # 100% 字段完整
+    good: 0.9           # >= 90% 字段完整
+    acceptable: 0.7     # >= 70% 字段完整
+    poor: 0.5           # >= 50% 字段完整
+    failed: 0.0         # < 50% 字段完整
+
+  accuracy:
+    excellent: 1.0      # 0 错误
+    good: 0.95          # <= 5% 错误率
+    acceptable: 0.9     # <= 10% 错误率
+    poor: 0.7           # <= 30% 错误率
+    failed: 0.0         # > 30% 错误率
+
+# 数据质量告警规则
+alerts:
+  critical:
+    - condition: 'missing_required_field'
+      message: "必填字段缺失"
+      severity: critical
+    - condition: 'invalid_format'
+      message: "字段格式错误"
+      severity: critical
+
+  warning:
+    - condition: 'quality_score < 0.9'
+      message: "数据质量低于 90%"
+      severity: warning
+    - condition: 'missing_optional_but_important'
+      message: "重要可选字段缺失"
+      severity: warning
+
+  info:
+    - condition: 'new_device_detected'
+      message: "检测到新设备类型"
+      severity: info
+    - condition: 'rule_created'
+      message: "创建新的解析规则"
+      severity: info

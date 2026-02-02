@@ -1,0 +1,136 @@
+# 厂商特征签名库
+# 用于识别不同厂商的网络设备配置文件
+
+vendors:
+  Cisco:
+    priority: 1
+    signatures:
+      - pattern: '^(hostname|interface\\s+\\S+|vlan\\s+\\d+)'
+        format: 'Cisco IOS'
+        confidence: high
+      - pattern: '^(version\\s+15|version\\s+12|version\\s+14)'
+        format: 'Cisco IOS'
+        confidence: high
+      - pattern: '^(ip\\s+subnet-zero|no\\s+service\\s+pad)'
+        format: 'Cisco IOS'
+        confidence: medium
+      - pattern: '^(spanning-tree\\s+vlan|spanning-tree\\s+mode)'
+        format: 'Cisco IOS'
+        confidence: high
+    device_types:
+      Router:
+        keywords: ['router', 'serial', 'WAN', 'ISDN', 'PPP']
+      Switch:
+        keywords: ['switch', 'vlan', 'trunk', 'GigabitEthernet', 'FastEthernet']
+      Firewall:
+        keywords: ['firewall', 'security-zone', 'zone', 'policy', 'ACL']
+    common_models:
+      - 'Catalyst 2960'
+      - 'Catalyst 3750'
+      - 'Catalyst 3850'
+      - 'Catalyst 9300'
+      - 'ISR 4000'
+      - 'ASR 1000'
+
+  Huawei:
+    priority: 2
+    signatures:
+      - pattern: '^(sysname|interface\\s+\\S+|vlan\\s+\\d+)'
+        format: 'Huawei VRP'
+        confidence: high
+      - pattern: '^\\s*#\\s*$'
+        format: 'Huawei VRP'
+        confidence: medium
+      - pattern: '^(undo|acl\\s+number|traffic\\s+classifier)'
+        format: 'Huawei VRP'
+        confidence: high
+    device_types:
+      Router:
+        keywords: ['router', 'NE40E', 'NE80E', 'AR']
+      Switch:
+        keywords: ['switch', 'S5700', 'S6700', 'S7700', 'S12700']
+    common_models:
+      - 'NE40E'
+      - 'NE80E'
+      - 'S5700'
+      - 'S6700'
+      - 'S7700'
+      - 'S12700'
+      - 'USG6000'
+
+  H3C:
+    priority: 3
+    signatures:
+      - pattern: '^(sysname|interface\\s+\\S+)'
+        format: 'H3C Comware'
+        confidence: high
+      - pattern: '^(undo|vlan\\s+\\d+)'
+        format: 'H3C Comware'
+        confidence: medium
+    device_types:
+      Switch:
+        keywords: ['switch', 'S5120', 'S5130', 'S5500', 'S10500']
+    common_models:
+      - 'S5120'
+      - 'S5130'
+      - 'S5500'
+      - 'S10500'
+
+  Juniper:
+    priority: 4
+    signatures:
+      - pattern: '^(set\\s+system\\s+hostname|interfaces\\s+\\S+)'
+        format: 'Juniper JunOS'
+        confidence: high
+      - pattern: '^(set\\s+interfaces|set\\s+protocols)'
+        format: 'Juniper JunOS'
+        confidence: high
+      - pattern: '^(apply-groups|reject)'
+        format: 'Juniper JunOS'
+        confidence: medium
+    device_types:
+      Router:
+        keywords: ['MX', 'M', 'PTX']
+      Switch:
+        keywords: ['EX', 'QFX']
+      Firewall:
+        keywords: ['SRX', 'vSRX']
+    common_models:
+      - 'MX960'
+      - 'MX480'
+      - 'EX4300'
+      - 'EX9200'
+      - 'SRX340'
+      - 'SRX1500'
+
+  Ruijie:
+    priority: 5
+    signatures:
+      - pattern: '^(hostname|interface\\s+\\S+)'
+        format: 'Ruijie OS'
+        confidence: medium
+      - pattern: '^(vlan\\s+\\d+|service\\s+sequence)'
+        format: 'Ruijie OS'
+        confidence: medium
+    device_types:
+      Switch:
+        keywords: ['switch', 'S26', 'S29', 'S57', 'S86']
+    common_models:
+      - 'S2620'
+      - 'S2920'
+      - 'S5750'
+      - 'S8600'
+
+  Maipu:
+    priority: 6
+    signatures:
+      - pattern: '^(hostname|interface\\s+\\S+)'
+        format: 'Maipu OS'
+        confidence: low
+    device_types:
+      Router:
+        keywords: ['router', 'MP2600', 'MP2800', 'MP3800']
+    common_models:
+      - 'MP2600'
+      - 'MP2800'
+      - 'MP3800'
