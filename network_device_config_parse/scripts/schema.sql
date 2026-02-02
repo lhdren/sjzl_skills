@@ -22,8 +22,8 @@ CREATE TABLE IF NOT EXISTS device_metadata (
 );
 
 -- 索引：提高查询性能
-CREATE INDEX idx_device_vendor ON device_metadata(vendor);
-CREATE INDEX idx_device_type ON device_metadata(device_type);
+CREATE INDEX IF NOT EXISTS idx_device_vendor ON device_metadata(vendor);
+CREATE INDEX IF NOT EXISTS idx_device_type ON device_metadata(device_type);
 
 -- ============================================================================
 -- 2. 解析规则表
@@ -54,9 +54,9 @@ CREATE TABLE IF NOT EXISTS parsing_rules (
 );
 
 -- 索引
-CREATE INDEX idx_rule_category ON parsing_rules(rule_category);
-CREATE INDEX idx_rule_device ON parsing_rules(device_metadata_id);
-CREATE INDEX idx_rule_active ON parsing_rules(is_active);
+CREATE INDEX IF NOT EXISTS idx_rule_category ON parsing_rules(rule_category);
+CREATE INDEX IF NOT EXISTS idx_rule_device ON parsing_rules(device_metadata_id);
+CREATE INDEX IF NOT EXISTS idx_rule_active ON parsing_rules(is_active);
 
 -- ============================================================================
 -- 3. 配置文件表
@@ -88,9 +88,9 @@ CREATE TABLE IF NOT EXISTS config_files (
 );
 
 -- 索引
-CREATE INDEX idx_config_file_hash ON config_files(file_hash);
-CREATE INDEX idx_config_device ON config_files(identified_device_id);
-CREATE INDEX idx_config_status ON config_files(parse_status);
+CREATE INDEX IF NOT EXISTS idx_config_file_hash ON config_files(file_hash);
+CREATE INDEX IF NOT EXISTS idx_config_device ON config_files(identified_device_id);
+CREATE INDEX IF NOT EXISTS idx_config_status ON config_files(parse_status);
 
 -- ============================================================================
 -- 4. 解析结果表
@@ -121,10 +121,10 @@ CREATE TABLE IF NOT EXISTS parse_results (
 );
 
 -- 索引
-CREATE INDEX idx_result_config ON parse_results(config_file_id);
-CREATE INDEX idx_result_device ON parse_results(device_metadata_id);
-CREATE INDEX idx_result_quality ON parse_results(quality_score);
-CREATE INDEX idx_result_status ON parse_results(validation_status);
+CREATE INDEX IF NOT EXISTS idx_result_config ON parse_results(config_file_id);
+CREATE INDEX IF NOT EXISTS idx_result_device ON parse_results(device_metadata_id);
+CREATE INDEX IF NOT EXISTS idx_result_quality ON parse_results(quality_score);
+CREATE INDEX IF NOT EXISTS idx_result_status ON parse_results(validation_status);
 
 -- ============================================================================
 -- 5. 设备基础信息表
@@ -152,8 +152,8 @@ CREATE TABLE IF NOT EXISTS device_info (
 );
 
 -- 索引
-CREATE INDEX idx_device_info_hostname ON device_info(hostname);
-CREATE INDEX idx_device_info_ip ON device_info(management_ip);
+CREATE INDEX IF NOT EXISTS idx_device_info_hostname ON device_info(hostname);
+CREATE INDEX IF NOT EXISTS idx_device_info_ip ON device_info(management_ip);
 
 -- ============================================================================
 -- 6. 接口配置表
@@ -185,9 +185,9 @@ CREATE TABLE IF NOT EXISTS interface_config (
 );
 
 -- 索引
-CREATE INDEX idx_interface_result ON interface_config(parse_result_id);
-CREATE INDEX idx_interface_name ON interface_config(interface_name);
-CREATE INDEX idx_interface_ip ON interface_config(ip_address);
+CREATE INDEX IF NOT EXISTS idx_interface_result ON interface_config(parse_result_id);
+CREATE INDEX IF NOT EXISTS idx_interface_name ON interface_config(interface_name);
+CREATE INDEX IF NOT EXISTS idx_interface_ip ON interface_config(ip_address);
 
 -- ============================================================================
 -- 7. 解析日志表
@@ -212,9 +212,9 @@ CREATE TABLE IF NOT EXISTS parse_logs (
 );
 
 -- 索引
-CREATE INDEX idx_log_config ON parse_logs(config_file_id);
-CREATE INDEX idx_log_level ON parse_logs(log_level);
-CREATE INDEX idx_log_created ON parse_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_log_config ON parse_logs(config_file_id);
+CREATE INDEX IF NOT EXISTS idx_log_level ON parse_logs(log_level);
+CREATE INDEX IF NOT EXISTS idx_log_created ON parse_logs(created_at);
 
 -- ============================================================================
 -- 8. 规则优化历史表
@@ -242,8 +242,8 @@ CREATE TABLE IF NOT EXISTS rule_optimization_history (
 );
 
 -- 索引
-CREATE INDEX idx_opt_rule ON rule_optimization_history(parsing_rule_id);
-CREATE INDEX idx_opt_time ON rule_optimization_history(optimized_at);
+CREATE INDEX IF NOT EXISTS idx_opt_rule ON rule_optimization_history(parsing_rule_id);
+CREATE INDEX IF NOT EXISTS idx_opt_time ON rule_optimization_history(optimized_at);
 
 -- ============================================================================
 -- 9. 触发器
@@ -259,9 +259,11 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 为需要的表添加更新时间触发器
+DROP TRIGGER IF EXISTS update_device_metadata_updated_at ON device_metadata;
 CREATE TRIGGER update_device_metadata_updated_at BEFORE UPDATE ON device_metadata
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_parsing_rules_updated_at ON parsing_rules;
 CREATE TRIGGER update_parsing_rules_updated_at BEFORE UPDATE ON parsing_rules
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 

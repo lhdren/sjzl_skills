@@ -116,13 +116,13 @@ class DatabaseManager:
             # 测试连接
             self.cursor.execute("SELECT version()")
             version = self.cursor.fetchone()
-            print(f"✓ 数据库连接成功")
+            print(f"[OK] 数据库连接成功")
             print(f"  PostgreSQL 版本: {version['version']}")
 
             return True
 
         except Exception as e:
-            print(f"✗ 数据库连接失败: {e}")
+            print(f"[FAIL] 数据库连接失败: {e}")
             return False
 
     def disconnect(self):
@@ -131,7 +131,7 @@ class DatabaseManager:
             self.cursor.close()
         if self.connection:
             self.connection.close()
-        print("\n数据库连接已关闭")
+        print("\n[OK] 数据库连接已关闭")
 
     def initialize_schema(self, schema_file: Optional[str] = None) -> bool:
         """
@@ -145,7 +145,7 @@ class DatabaseManager:
                 schema_file = Path(__file__).parent.parent / 'scripts' / 'schema.sql'
 
             if not Path(schema_file).exists():
-                print(f"架构文件不存在: {schema_file}")
+                print(f"[ERROR] 架构文件不存在: {schema_file}")
                 return False
 
             print(f"\n正在初始化数据库架构...")
@@ -157,11 +157,11 @@ class DatabaseManager:
             self.cursor.execute(sql)
 
             self.connection.commit()
-            print("✓ 数据库架构初始化成功")
+            print("[OK] 数据库架构初始化成功")
             return True
 
         except Exception as e:
-            print(f"✗ 架构初始化失败: {e}")
+            print(f"[ERROR] 架构初始化失败: {e}")
             self.connection.rollback()
             return False
 
@@ -280,11 +280,11 @@ class DatabaseManager:
                 ))
 
             self.connection.commit()
-            print(f"✓ 解析结果已保存到数据库 (ID: {parse_result_id})")
+            print(f"[OK] 解析结果已保存到数据库 (ID: {parse_result_id})")
             return parse_result_id
 
         except Exception as e:
-            print(f"✗ 保存解析结果失败: {e}")
+            print(f"[ERROR] 保存解析结果失败: {e}")
             self.connection.rollback()
             return 0
 
@@ -341,11 +341,11 @@ class DatabaseManager:
                 ))
 
             self.connection.commit()
-            print(f"✓ 解析规则已保存到数据库")
+            print(f"[OK] 解析规则已保存到数据库")
             return device_metadata_id
 
         except Exception as e:
-            print(f"✗ 保存解析规则失败: {e}")
+            print(f"[ERROR] 保存解析规则失败: {e}")
             self.connection.rollback()
             return 0
 
@@ -403,7 +403,7 @@ class DatabaseManager:
             return rules
 
         except Exception as e:
-            print(f"✗ 加载解析规则失败: {e}")
+            print(f"[ERROR] 加载解析规则失败: {e}")
             return []
 
     def log_parse_event(self, config_file_id: int, level: str, message: str,
@@ -424,7 +424,7 @@ class DatabaseManager:
             self.connection.commit()
 
         except Exception as e:
-            print(f"✗ 记录日志失败: {e}")
+            print(f"[ERROR] 记录日志失败: {e}")
 
     def get_parse_statistics(self) -> Dict[str, Any]:
         """获取解析统计信息"""
@@ -466,7 +466,7 @@ class DatabaseManager:
             }
 
         except Exception as e:
-            print(f"✗ 获取统计信息失败: {e}")
+            print(f"[ERROR] 获取统计信息失败: {e}")
             return {}
 
     def __enter__(self):
@@ -508,7 +508,7 @@ def save_connection_config_template(save_path: Optional[str] = None):
             for key, value in template.items():
                 f.write(f"{key}={value}\n")
 
-        print(f"✓ 配置模板已保存到: {save_path}")
+        print(f"[OK] 配置模板已保存到: {save_path}")
         print(f"  提示: 请复制模板为 .env 文件，并修改 DB_PASSWORD 为真实密码")
         print(f"  警告: .env 文件包含敏感信息，请勿提交到版本控制系统")
 
@@ -520,10 +520,10 @@ def save_connection_config_template(save_path: Optional[str] = None):
             if '.env' not in content:
                 with open(gitignore_path, 'a', encoding='utf-8') as f:
                     f.write("\n# Database credentials\n.env\n")
-                print("✓ 已更新 .gitignore，防止 .env 文件被提交")
+                print("[OK] 已更新 .gitignore，防止 .env 文件被提交")
 
     except Exception as e:
-        print(f"✗ 保存配置模板失败: {e}")
+        print(f"[ERROR] 保存配置模板失败: {e}")
 
 
 def main():

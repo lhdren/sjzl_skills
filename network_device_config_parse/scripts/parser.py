@@ -128,7 +128,7 @@ class NetworkConfigParser:
         # 根据特征关键字识别
         type_keywords = {
             'Router': ['router', 'serial', 'WAN'],
-            'Switch': ['switch', 'vlan', 'trunk', 'interface\s+GigabitEthernet'],
+            'Switch': ['switch', 'vlan', 'trunk', r'interface\s+GigabitEthernet'],
             'Firewall': ['firewall', 'security-zone', 'policy'],
             'Load Balancer': ['load-balance', 'slb', 'serverfarm']
         }
