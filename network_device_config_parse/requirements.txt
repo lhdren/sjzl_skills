@@ -5,3 +5,6 @@ PyYAML>=6.0
 
 # PostgreSQL 数据库驱动
 psycopg2-binary>=2.9.0
+
+# HTTP 请求（用于调用智谱AI API）
+requests>=2.28.0
