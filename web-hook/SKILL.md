@@ -190,6 +190,53 @@ npx serve .
 - 迭代优化
 - 知识问答
 
+### 模板 5: Skill Manager（技能管理器）🆕
+
+**文件**: `templates/skill-manager.html`
+
+**特点**：
+- 对话式创建 Skill
+- 选择并使用现有 Skill
+- Claude AI 辅助生成
+- 只读保护（不可修改）
+
+**使用场景**：
+- 快速创建自定义技能
+- 测试和验证技能
+- 管理本地技能库
+
+**启动方式**：
+
+```bash
+# Windows
+cd scripts
+start_skill_manager.bat
+
+# Linux/Mac
+cd scripts
+bash start_skill_manager.sh
+
+# 或手动启动
+python skill_server.py
+```
+
+访问: http://localhost:5000
+
+**功能说明**：
+
+| 功能 | 说明 |
+|------|------|
+| 📋 **查看列表** | 右侧显示所有可用 skills |
+| ➕ **创建 Skill** | 点击按钮，通过对话创建新 skill |
+| 💬 **使用 Skill** | 选择 skill 后在左侧对话框中交互 |
+| ⚙️ **配置 API** | 设置 Claude API 信息 |
+| 🔄 **刷新列表** | 重新加载 skills 目录 |
+
+**重要限制**：
+- ✅ 可以创建新 skill
+- ✅ 可以使用现有 skill
+- ❌ 不允许修改已存在的 skill
+
 ---
 
 ## API 集成指南
@@ -380,6 +427,9 @@ function loadConversation() {
 | [templates/command-form.html](templates/command-form.html) | 指令表单模板 |
 | [templates/streaming-chat.html](templates/streaming-chat.html) | 流式聊天模板 |
 | [templates/multi-turn-chat.html](templates/multi-turn-chat.html) | 多轮对话模板 |
+| [templates/skill-manager.html](templates/skill-manager.html) | 技能管理器模板 🆕 |
 | [scripts/simple_server.py](scripts/simple_server.py) | Python 后端服务 |
+| [scripts/skill_server.py](scripts/skill_server.py) | Skill Manager 后端服务 🆕 |
+| [scripts/start_skill_manager.bat](scripts/start_skill_manager.bat) | Skill Manager 启动脚本 🆕 |
 | [references/API_GUIDE.md](references/API_GUIDE.md) | Claude API 详解 |
 | [references/DEPLOYMENT.md](references/DEPLOYMENT.md) | 部署指南 |
