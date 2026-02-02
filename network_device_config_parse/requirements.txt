@@ -2,3 +2,6 @@
 
 # YAML 解析
 PyYAML>=6.0
+
+# PostgreSQL 数据库驱动
+psycopg2-binary>=2.9.0

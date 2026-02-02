@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Database credentials (敏感信息 - 绝不提交)
+.env
+.env.local
+*.db
+*.sqlite
+*.sqlite3
+
+# Config files with sensitive data
+config.local.json
+secrets.yaml
+credentials.json
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Skill specific
+parsed_configs/
+output/
+temp/
+*.bak
+*.tmp
+
+# Test files
+test_configs/
+*.test.txt
