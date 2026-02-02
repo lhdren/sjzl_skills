@@ -8,3 +8,6 @@ psycopg2-binary>=2.9.0
 
 # HTTP 请求（用于调用智谱AI API）
 requests>=2.28.0
+
+# 环境变量管理（从.env文件加载）
+python-dotenv>=1.0.0

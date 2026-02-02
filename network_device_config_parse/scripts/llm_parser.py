@@ -7,11 +7,16 @@ LLM-based Config Parser - 基于大语言模型的配置解析器
 import os
 import json
 import re
+import time
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, asdict
 from pathlib import Path
 import requests
 from datetime import datetime
+
+# 自动加载.env文件
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).parent.parent / '.env')
 
 
 @dataclass
@@ -45,13 +50,14 @@ class LLMConfigParser:
         self.config = config or LLMConfig.from_env()
         self.api_url = f"{self.config.base_url}chat/completions"
 
-    def call_llm(self, prompt: str, system_prompt: Optional[str] = None) -> str:
+    def call_llm(self, prompt: str, system_prompt: Optional[str] = None, max_retries: int = 3) -> str:
         """
-        调用智谱AI API
+        调用智谱AI API（带重试机制）
 
         Args:
             prompt: 用户提示词
             system_prompt: 系统提示词（可选）
+            max_retries: 最大重试次数
 
         Returns:
             模型响应文本
@@ -76,15 +82,39 @@ class LLMConfigParser:
             "max_tokens": self.config.max_tokens
         }
 
-        try:
-            response = requests.post(self.api_url, headers=headers, json=payload, timeout=60)
-            response.raise_for_status()
+        for retry in range(max_retries):
+            try:
+                # 添加请求间隔，避免速率限制
+                if retry > 0:
+                    wait_time = 2 ** retry  # 指数退避：2, 4, 8秒
+                    print(f"  [重试 {retry}/{max_retries}] 等待 {wait_time} 秒后重试...")
+                    time.sleep(wait_time)
+                else:
+                    time.sleep(1)  # 第一次请求前等待1秒
 
-            result = response.json()
-            return result["choices"][0]["message"]["content"]
+                response = requests.post(self.api_url, headers=headers, json=payload, timeout=60)
 
-        except requests.exceptions.RequestException as e:
-            raise Exception(f"LLM API调用失败: {e}")
+                # 检查是否是速率限制错误
+                if response.status_code == 429:
+                    if retry < max_retries - 1:
+                        wait_time = 5  # 速率限制时等待5秒
+                        print(f"  [WARN] API速率限制，等待 {wait_time} 秒后重试...")
+                        time.sleep(wait_time)
+                        continue
+                    else:
+                        raise Exception(f"API速率限制，已达到最大重试次数 ({max_retries})")
+
+                response.raise_for_status()
+
+                result = response.json()
+                return result["choices"][0]["message"]["content"]
+
+            except requests.exceptions.RequestException as e:
+                if retry == max_retries - 1:
+                    raise Exception(f"LLM API调用失败（已重试{max_retries}次）: {e}")
+                print(f"  [WARN] 请求失败: {e}，正在重试...")
+
+        raise Exception(f"LLM API调用失败: 达到最大重试次数")
 
     def extract_json_from_response(self, response: str) -> Dict[str, Any]:
         """

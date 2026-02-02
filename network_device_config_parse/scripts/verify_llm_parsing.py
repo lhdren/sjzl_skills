@@ -11,6 +11,10 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Any
 
+# 自动加载.env文件
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).parent.parent / '.env')
+
 # 添加父目录到路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
